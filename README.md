@@ -1,0 +1,1 @@
+# Ulkelerin-Petrol-Rezervleri-Haritasi-US-EIA-2023-Wikipedia-
