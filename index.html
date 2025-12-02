@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Ülkelerin Petrol Rezervleri Haritası (US EIA, 2023, Wikipedia)</title>
+    
+
+  </head>
+    
+  <body>
+  <!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ülkelerin Petrol Rezervleri Haritası (OPEC Verisi)</title>
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        crossorigin=""
+    />
+    <style>
+        html, body {
+            margin: 0; padding: 0; height: 100vh; width: 100vw; overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            display: flex;
+            flex-direction: row;
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1100;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.3);
+            font-size: 16px;
+            max-width: 300px;
+        }
+        #map, #wiki {
+            height: 100vh;
+            width: 50vw;
+            box-sizing: border-box;
+        }
+        #map {
+            border-right: 2px solid #ccc;
+        }
+        #wiki iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+        select {
+            width: 100%;
+            font-size: 16px;
+            margin-top: 8px;
+            padding: 4px;
+        }
+        /* Responsive */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+            #controls {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                box-sizing: border-box;
+                border-radius: 0;
+                padding: 10px 15px;
+                text-align: center;
+                font-size: 14px;
+                z-index: 1200;
+                max-width: none;
+            }
+            #map, #wiki {
+                width: 100vw;
+                height: calc(50vh - 25px);
+            }
+            #map {
+                border-right: none;
+                border-bottom: 2px solid #ccc;
+                margin-top: 50px;
+            }
+            #wiki {
+                height: calc(50vh - 25px);
+            }
+            .leaflet-control-zoom {
+                top: 70px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        Ülkelerin Petrol Rezervleri Haritası (US EIA, 2023, Wikipedia)<br />
+        <select id="countrySelect">
+            <option value="">-- Bir ülke seçin --</option>
+        </select>
+    </div>
+
+    <div id="map"></div>
+    <div id="wiki">
+        <iframe
+            id="wikiFrame"
+            src="https://tr.wikipedia.org/wiki/Kan%C4%B1tlanm%C4%B1%C5%9F_petrol_rezervlerine_g%C3%B6re_%C3%BClkelerin_listesi"
+            title="Wikipedia"
+            sandbox="allow-same-origin allow-scripts allow-popups"
+        ></iframe>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script>
+        // OPEC ve diğer önemli ülkelerin petrol rezervleri ve koordinatları (lat,lng yaklaşık)
+        const countries = [
+          {name: "Venezuela", reserves: 304000, lat: 6.42375, lng: -66.58973, wiki: "Venezuela"},
+  {name: "Suudi Arabistan", reserves: 262000, lat: 24.7136, lng: 46.6753, wiki: "Suudi_Arabistan"},
+  {name: "İran", reserves: 209000, lat: 32.4279, lng: 53.688, wiki: "İran"},
+  {name: "Kanada", reserves: 168000, lat: 56.1304, lng: -106.3468, wiki: "Kanada"},
+  {name: "Irak", reserves: 145000, lat: 33.3152, lng: 44.3661, wiki: "Irak"},
+  {name: "Birleşik Arap Emirlikleri", reserves: 107000, lat: 23.4241, lng: 53.8478, wiki: "Birleşik_Arap_Emirlikleri"},
+  {name: "Kuveyt", reserves: 102000, lat: 29.3759, lng: 47.9774, wiki: "Kuveyt"},
+  {name: "Rusya", reserves: 80000, lat: 61.524, lng: 105.3188, wiki: "Rusya"},
+  {name: "Amerika Birleşik Devletleri", reserves: 61000, lat: 37.0902, lng: -95.7129, wiki: "Amerika_Birleşik_Devletleri"},
+  {name: "Libya", reserves: 48000, lat: 26.3351, lng: 17.2283, wiki: "Libya"},
+  {name: "Nijerya", reserves: 37000, lat: 9.082, lng: 8.6753, wiki: "Nijerya"},
+  {name: "Kazakistan", reserves: 30000, lat: 48.0196, lng: 66.9237, wiki: "Kazakistan"},
+  {name: "Çin", reserves: 26022, lat: 35.8617, lng: 104.1954, wiki: "Çin"},
+  {name: "Katar", reserves: 25244, lat: 25.3548, lng: 51.1839, wiki: "Katar"},
+  {name: "Brezilya", reserves: 12714, lat: -14.235, lng: -51.9253, wiki: "Brezilya"},
+  {name: "Cezayir", reserves: 12200, lat: 28.0339, lng: 1.6596, wiki: "Cezayir"},
+  {name: "Ekvador", reserves: 8273, lat: -1.8312, lng: -78.1834, wiki: "Ekvador"},
+  {name: "Norveç", reserves: 8122, lat: 60.472, lng: 8.4689, wiki: "Norveç"},
+  {name: "Angola", reserves: 7783, lat: -11.2027, lng: 17.8739, wiki: "Angola"},
+  {name: "Azerbaycan", reserves: 7000, lat: 40.1431, lng: 47.5769, wiki: "Azerbaycan"},
+  {name: "Meksika", reserves: 5786, lat: 23.6345, lng: -102.5528, wiki: "Meksika"},
+  {name: "Umman", reserves: 5373, lat: 21.4735, lng: 55.9754, wiki: "Umman"},
+  {name: "Sudan", reserves: 5000, lat: 12.8628, lng: 30.2176, wiki: "Sudan"},
+  {name: "Hindistan", reserves: 4604, lat: 20.5937, lng: 78.9629, wiki: "Hindistan"},
+  {name: "Vietnam", reserves: 4400, lat: 14.0583, lng: 108.2772, wiki: "Vietnam"},
+  {name: "Malezya", reserves: 3600, lat: 4.2105, lng: 101.9758, wiki: "Malezya"},
+  {name: "Mısır", reserves: 3300, lat: 26.8206, lng: 30.8025, wiki: "Mısır"},
+  {name: "Yemen", reserves: 3000, lat: 15.5527, lng: 48.5164, wiki: "Yemen"},
+  {name: "Kongo Cumhuriyeti", reserves: 2882, lat: -0.228, lng: 15.8277, wiki: "Kongo_Cumhuriyeti"},
+  {name: "Birleşik Krallık", reserves: 2500, lat: 55.3781, lng: -3.436, wiki: "Birleşik_Krallık"},
+  {name: "Suriye", reserves: 2500, lat: 34.8021, lng: 38.9968, wiki: "Suriye"},
+  {name: "Arjantin", reserves: 2482, lat: -38.4161, lng: -63.6167, wiki: "Arjantin"},
+  {name: "Endonezya", reserves: 2480, lat: -0.7893, lng: 113.9213, wiki: "Endonezya"},
+  {name: "Avustralya", reserves: 2446, lat: -25.2744, lng: 133.7751, wiki: "Avustralya"},
+  {name: "Kolombiya", reserves: 2036, lat: 4.5709, lng: -74.2973, wiki: "Kolombiya"},
+  {name: "Gabon", reserves: 2000, lat: -0.8037, lng: 11.6094, wiki: "Gabon"},
+  {name: "Çad", reserves: 1500, lat: 15.4542, lng: 18.7322, wiki: "Çad"},
+  {name: "Brunei", reserves: 1100, lat: 4.5353, lng: 114.7277, wiki: "Brunei"},
+  {name: "Ekvator Ginesi", reserves: 1100, lat: 1.6508, lng: 10.2679, wiki: "Ekvator_Ginesi"},
+  {name: "Peru", reserves: 858, lat: -9.19, lng: -75.0152, wiki: "Peru"},
+  {name: "Gana", reserves: 660, lat: 7.9465, lng: -1.0232, wiki: "Gana"},
+  {name: "Romanya", reserves: 600, lat: 45.9432, lng: 24.9668, wiki: "Romanya"},
+  {name: "Türkmenistan", reserves: 600, lat: 38.9697, lng: 59.5563, wiki: "Türkmenistan"},
+  {name: "Özbekistan", reserves: 594, lat: 41.3775, lng: 64.5853, wiki: "Özbekistan"},
+  {name: "Pakistan", reserves: 540, lat: 30.3753, lng: 69.3451, wiki: "Pakistan"},
+  {name: "İtalya", reserves: 497, lat: 41.8719, lng: 12.5674, wiki: "İtalya"},
+  {name: "Danimarka", reserves: 441, lat: 56.2639, lng: 9.5018, wiki: "Danimarka"},
+  {name: "Tunus", reserves: 425, lat: 33.8869, lng: 9.5375, wiki: "Tunus"},
+  {name: "Ukrayna", reserves: 395, lat: 48.3794, lng: 31.1656, wiki: "Ukrayna"},
+  {name: "Türkiye", reserves: 366, lat: 38.9637, lng: 35.2433, wiki: "Türkiye"},
+  {name: "Tayland", reserves: 252, lat: 15.8700, lng: 100.9925, wiki: "Tayland"},
+  {name: "Trinidad ve Tobago", reserves: 242, lat: 10.6918, lng: -61.2225, wiki: "Trinidad_ve_Tobago"},
+  {name: "Bolivya", reserves: 240, lat: -16.2902, lng: -63.5887, wiki: "Bolivya"},
+  {name: "Kamerun", reserves: 200, lat: 7.3697, lng: 12.3547, wiki: "Kamerun"},
+  {name: "Belarus", reserves: 198, lat: 53.7098, lng: 27.9534, wiki: "Belarus"},
+  {name: "Bahreyn", reserves: 186, lat: 26.0667, lng: 50.5577, wiki: "Bahreyn"},
+  {name: "Kongo Demokratik Cumhuriyeti", reserves: 180, lat: -4.0383, lng: 21.7587, wiki: "Kongo_Demokratik_Cumhuriyeti"},
+  {name: "Papua Yeni Gine", reserves: 159, lat: -6.314993, lng: 143.95555, wiki: "Papua_Yeni_Gine"},
+  {name: "Arnavutluk", reserves: 150, lat: 41.1533, lng: 20.1683, wiki: "Arnavutluk"},
+  {name: "Şili", reserves: 150, lat: -35.6751, lng: -71.543, wiki: "Şili"},
+  {name: "Nijer", reserves: 150, lat: 17.6078, lng: 8.0817, wiki: "Nijer"},
+  {name: "İspanya", reserves: 150, lat: 40.4637, lng: -3.7492, wiki: "İspanya"},
+  {name: "Myanmar", reserves: 139, lat: 21.9162, lng: 95.9559, wiki: "Myanmar"},
+  {name: "Filipinler", reserves: 138, lat: 12.8797, lng: 121.7740, wiki: "Filipinler"},
+  {name: "Hollanda", reserves: 137, lat: 52.1326, lng: 5.2913, wiki: "Hollanda"},
+  {name: "Küba", reserves: 124, lat: 21.5218, lng: -77.7812, wiki: "Küba"},
+  {name: "Almanya", reserves: 115, lat: 51.1657, lng: 10.4515, wiki: "Almanya"},
+  {name: "Polonya", reserves: 113, lat: 51.9194, lng: 19.1451, wiki: "Polonya"},
+  {name: "Fildişi Sahili", reserves: 100, lat: 7.539989, lng: -5.54708, wiki: "Fildişi_Sahili"},
+  {name: "Surinam", reserves: 89, lat: 3.9193, lng: -56.0278, wiki: "Surinam"},
+  {name: "Guatemala", reserves: 86, lat: 15.7835, lng: -90.2308, wiki: "Guatemala"},
+  {name: "Sırbistan", reserves: 77, lat: 44.0165, lng: 21.0059, wiki: "Sırbistan"},
+  {name: "Hırvatistan", reserves: 71, lat: 45.1, lng: 15.2, wiki: "Hırvatistan"},
+  {name: "Fransa", reserves: 61, lat: 46.2276, lng: 2.2137, wiki: "Fransa"},
+  {name: "Japonya", reserves: 44, lat: 36.2048, lng: 138.2529, wiki: "Japonya"},
+  {name: "Yeni Zelanda", reserves: 40, lat: -40.9006, lng: 174.886, wiki: "Yeni_Zelanda"},
+  {name: "Kırgızistan", reserves: 40, lat: 41.2044, lng: 74.7661, wiki: "Kırgızistan"},
+  {name: "Avusturya", reserves: 35, lat: 47.5162, lng: 14.5501, wiki: "Avusturya"},
+  {name: "Gürcistan", reserves: 35, lat: 42.3154, lng: 43.3569, wiki: "Gürcistan"},
+  {name: "Bangladeş", reserves: 28, lat: 23.685, lng: 90.3563, wiki: "Bangladeş"},
+  {name: "Moritanya", reserves: 20, lat: 21.0079, lng: -10.9408, wiki: "Moritanya"},
+  {name: "Bulgaristan", reserves: 15, lat: 42.7339, lng: 25.4858, wiki: "Bulgaristan"},
+  {name: "Çekya", reserves: 15, lat: 49.8175, lng: 15.473, wiki: "Çekya"},
+  {name: "Güney Afrika Cumhuriyeti", reserves: 15, lat: -30.5595, lng: 22.9375, wiki: "Güney_Afrika_Cumhuriyeti"},
+  {name: "İsrail", reserves: 12, lat: 31.0461, lng: 34.8516, wiki: "İsrail"},
+  {name: "Macaristan", reserves: 12, lat: 47.1625, lng: 19.5033, wiki: "Macaristan"},
+  {name: "Litvanya", reserves: 12, lat: 55.1694, lng: 23.8813, wiki: "Litvanya"},
+  {name: "Tacikistan", reserves: 12, lat: 38.861, lng: 71.2761, wiki: "Tacikistan"},
+  {name: "Yunanistan", reserves: 10, lat: 39.0742, lng: 21.8243, wiki: "Yunanistan"},
+  {name: "Slovakya", reserves: 9, lat: 48.669, lng: 19.699, wiki: "Slovakya"},
+  {name: "Benin", reserves: 8, lat: 9.3077, lng: 2.3158, wiki: "Benin"},
+  {name: "Belize", reserves: 6, lat: 17.1899, lng: -88.4976, wiki: "Belize"},
+  {name: "Tayvan", reserves: 2, lat: 23.6978, lng: 120.9605, wiki: "Tayvan"},
+  {name: "Barbados", reserves: 1, lat: 13.1939, lng: -59.5432, wiki: "Barbados"},
+  {name: "Ürdün", reserves: 1, lat: 30.5852, lng: 36.2384, wiki: "Ürdün"},
+  {name: "Fas", reserves: 0.6, lat: 31.7917, lng: -7.0926, wiki: "Fas"},
+  {name: "Etiyopya", reserves: 0.4, lat: 9.145, lng: 40.4897, wiki: "Etiyopya"},
+        ];
+
+        // Rezerv büyüklüğüne göre büyükten küçüğe sırala
+        countries.sort((a, b) => b.reserves - a.reserves);
+
+        // Harita başlatma
+        const map = L.map('map').setView([20, 0], 2);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> katkıcıları'
+        }).addTo(map);
+
+        let markers = [];
+        const select = document.getElementById('countrySelect');
+
+        // Listeye seçenekleri rezerv sırasına göre 1,2,3... olarak ekle
+        countries.forEach((country, i) => {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = `${i + 1}. ${country.name} (${country.reserves.toLocaleString()} milyon varil)`;
+            select.appendChild(option);
+        });
+
+        // Markerları ekle ve popup ayarla
+        countries.forEach((country, i) => {
+            const marker = L.marker([country.lat, country.lng]).addTo(map);
+            marker.bindPopup(`<b>${country.name}</b><br>Rezerv: ${country.reserves.toLocaleString()} milyon varil<br><a href="https://tr.wikipedia.org/wiki/${country.wiki}" target="_blank" rel="noopener noreferrer">Wikipedia</a>`);
+            marker.on('click', () => {
+                select.value = i;
+                showWiki(country.wiki);
+            });
+            markers.push(marker);
+        });
+
+        function showWiki(wikiPage) {
+            document.getElementById('wikiFrame').src = `https://tr.wikipedia.org/wiki/${wikiPage}`;
+        }
+
+        select.addEventListener('change', () => {
+            const idx = select.value;
+            if (idx === "") {
+                map.setView([20, 0], 2);
+                document.getElementById('wikiFrame').src = "https://tr.wikipedia.org/wiki/Kan%C4%B1tlanm%C4%B1%C5%9F_petrol_rezervlerine_g%C3%B6re_%C3%BClkelerin_listesi";
+                return;
+            }
+            const country = countries[idx];
+            map.setView([country.lat, country.lng], 5);
+            markers[idx].openPopup();
+            showWiki(country.wiki);
+        });
+
+        // Başlangıçta genel wiki sayfası
+        document.getElementById('wikiFrame').src = "https://tr.wikipedia.org/wiki/Kan%C4%B1tlanm%C4%B1%C5%9F_petrol_rezervlerine_g%C3%B6re_%C3%BClkelerin_listesi";
+    </script>
+</body>
+</html>
+    
+  </body>
+  
+</html>
